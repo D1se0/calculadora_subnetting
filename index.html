@@ -452,19 +452,32 @@
             }
 
             function parseInput(input) {
-                let ip = "", cidr = null, mask = null;
                 input = input.trim();
+                let ip = "", mask = "", cidr = null;
+
                 if (input.includes("/")) {
+                    // Formato IP/CIDR
                     [ip, cidr] = input.split("/");
                     cidr = parseInt(cidr);
                     let m = ((0xFFFFFFFF << (32 - cidr)) >>> 0);
                     mask = [(m >>> 24) & 255, (m >>> 16) & 255, (m >>> 8) & 255, m & 255].join('.');
                 } else if (input.includes(" ")) {
+                    // Formato IP + máscara
                     [ip, mask] = input.split(" ");
+                    mask = mask.trim();
+                    // Convertimos máscara a CIDR
                     let maskParts = mask.split(".").map(x => parseInt(x));
+                    if (maskParts.length !== 4 || maskParts.some(o => isNaN(o) || o < 0 || o > 255)) return null;
                     cidr = maskParts.reduce((acc, o) => acc + ((o).toString(2).match(/1/g) || []).length, 0);
+                } else {
+                    return null; // formato inválido
                 }
-                return { ip, cidr, mask };
+
+                // Validar IP
+                let ipParts = ip.split(".").map(x => parseInt(x));
+                if (ipParts.length !== 4 || ipParts.some(o => isNaN(o) || o < 0 || o > 255)) return null;
+
+                return { ip, mask, cidr };
             }
 
             function ipClass(ip) {
@@ -628,13 +641,14 @@
 
             // Listener del input
             document.getElementById("ipInput").addEventListener("input", (e) => {
-                let val = e.target.value;
-                if (validateIP(val)) {
-                    let ipObj = parseInput(val);
-                    if (ipObj.ip && ipObj.mask && ipObj.cidr) {
-                        calculate(ipObj);                     // Calcula resultados normales
-                        generateRealCIDRTable(ipObj.ip);      // Genera tabla CIDR real
-                    }
+                let val = e.target.value.trim();
+                let ipObj = parseInput(val);  // parseInput ahora soporta ambos formatos
+                if (ipObj && ipObj.ip && ipObj.mask && ipObj.cidr) {
+                    calculate(ipObj);                // Calcula resultados normales
+                    generateRealCIDRTable(ipObj.ip); // Genera tabla CIDR real
+                } else {
+                    // Opcional: limpiar resultados si el input es inválido
+                    clearResults();
                 }
             });
         </script>
