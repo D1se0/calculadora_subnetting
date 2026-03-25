@@ -7,6 +7,27 @@
     <title>Calculadora de Subnetting</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
+        ::selection {
+            background-color: #555;
+            /* gris ceniza */
+            color: #eee;
+            /* texto claro */
+        }
+
+        #customCursor {
+            position: fixed;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            pointer-events: none;
+            mix-blend-mode: difference;
+            background: rgba(255, 255, 255, 0.4);
+            box-shadow: 0 0 8px 2px rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: transform 0.05s ease-out;
+            z-index: 9999;
+        }
+
         @font-face {
             font-family: 'Hack Nerd Font';
             src: url('HackNerdFont-Regular.ttf') format('truetype');
@@ -16,6 +37,7 @@
 
         body {
             font-family: 'Hack Nerd Font', monospace;
+            cursor: none;
         }
 
         body {
@@ -345,9 +367,9 @@
         </div>
 
         <div class="badges">
-            <div class="badge grey" id="classBadge">Clase C</div>
-            <div class="badge green" id="typeBadge">Red Privada</div>
-            <div class="badge grey" id="cidrBadge">/24</div>
+            <div class="badge grey" id="classBadge">Clase -</div>
+            <div class="badge green" id="typeBadge">Red -</div>
+            <div class="badge grey" id="cidrBadge">/-</div>
         </div>
 
         <div class="results">
@@ -421,6 +443,60 @@
         <div id="copyToast" class="toast-message"></div>
 
         <script>
+
+            const body = document.body;
+
+            // Crear el cursor
+            const cursor = document.createElement("div");
+            cursor.id = "customCursor";
+            document.body.appendChild(cursor);
+
+            let lastX = 0;
+            let lastY = 0;
+
+            // Seguir el cursor y generar binarios aleatorios solo con movimiento real
+            document.addEventListener("mousemove", (e) => {
+                cursor.style.left = e.clientX + "px";
+                cursor.style.top = e.clientY + "px";
+
+                // Calcular distancia desde la última posición
+                const dx = e.clientX - lastX;
+                const dy = e.clientY - lastY;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                // Solo generar si se movió más de 5px
+                if (dist > 5 && Math.random() < 0.25) { // 25% de probabilidad
+                    createBinary(
+                        e.clientX + Math.random() * 6 - 3,
+                        e.clientY + Math.random() * 6 - 3
+                    );
+                    lastX = e.clientX;
+                    lastY = e.clientY;
+                }
+            });
+
+            // Función que crea los binarios flotantes
+            function createBinary(x, y) {
+                const span = document.createElement("span");
+                span.innerText = Math.random() > 0.5 ? "1" : "0";
+                span.style.position = "fixed";
+                span.style.left = x + "px";
+                span.style.top = y + "px";
+                span.style.fontSize = (Math.random() * 8 + 8) + "px"; // tamaño más discreto
+                span.style.color = `rgba(180,180,180,${Math.random() * 0.5 + 0.3})`;
+                span.style.userSelect = "none";
+                span.style.pointerEvents = "none";
+                span.style.transition = "transform 2s linear, opacity 2s linear";
+                document.body.appendChild(span);
+
+                requestAnimationFrame(() => {
+                    span.style.transform = `translateY(-${Math.random() * 30 + 10}px) translateX(${Math.random() * 10 - 5}px)`;
+                    span.style.opacity = 0;
+                });
+
+                setTimeout(() => span.remove(), 2000);
+            }
+
             // Limpia el input al cargar la página
             window.addEventListener("load", () => {
                 const ipInput = document.getElementById("ipInput");
@@ -509,9 +585,9 @@
                 let usableHosts = Math.max(0, Math.pow(2, 32 - ipObj.cidr) - 2);
 
                 // Badges
-                document.getElementById("classBadge").innerText = ipClass(ipObj.ip);
-                document.getElementById("typeBadge").innerText = isPrivate(ipObj.ip) ? "Red Privada" : "Red Pública";
-                document.getElementById("cidrBadge").innerText = "/" + ipObj.cidr;
+                document.getElementById("classBadge").innerText = ipObj.ip ? ipClass(ipObj.ip) : "Clase -";
+                document.getElementById("typeBadge").innerText = ipObj.ip ? (isPrivate(ipObj.ip) ? "Red Privada" : "Red Pública") : "Red -";
+                document.getElementById("cidrBadge").innerText = ipObj.cidr ? "/" + ipObj.cidr : "/-";
 
                 // Resultados
                 document.getElementById("network").innerText = network.join(".");
@@ -639,15 +715,51 @@
                 }
             }
 
+            function clearResults() {
+                // Badges
+                document.getElementById("classBadge").innerText = "Clase -";
+                document.getElementById("typeBadge").innerText = "Red -";
+                document.getElementById("cidrBadge").innerText = "/-";
+
+                // Resultados columnas
+                document.getElementById("network").innerText = "-";
+                document.getElementById("mask").innerText = "-";
+                document.getElementById("firstHost").innerText = "-";
+                document.getElementById("broadcast").innerText = "-";
+                document.getElementById("wildcard").innerText = "-";
+                document.getElementById("lastHost").innerText = "-";
+                document.getElementById("usableHosts").innerText = "-";
+
+                // Representación binaria
+                document.getElementById("binaryIP").innerHTML = "<span class='title'>IP</span>-";
+                document.getElementById("binaryMask").innerHTML = "<span class='title'>Máscara</span>-";
+                document.getElementById("binaryNetwork").innerHTML = "<span class='title'>Red</span>-";
+                document.getElementById("binaryBroadcast").innerHTML = "<span class='title'>Broadcast</span>-";
+
+                // Tabla CIDR
+                const tableBody = document.querySelector("#cidrTable tbody");
+                tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center">Ingrese una IP válida</td></tr>`;
+            }
+
             // Listener del input
             document.getElementById("ipInput").addEventListener("input", (e) => {
                 let val = e.target.value.trim();
-                let ipObj = parseInput(val);  // parseInput ahora soporta ambos formatos
+
+                // Si el input está vacío, limpiar todo
+                if (!val) {
+                    clearResults();
+                    return;
+                }
+
+                // Intentamos parsear la IP (soporta IP/CIDR y IP + máscara)
+                let ipObj = parseInput(val);
+
                 if (ipObj && ipObj.ip && ipObj.mask && ipObj.cidr) {
-                    calculate(ipObj);                // Calcula resultados normales
-                    generateRealCIDRTable(ipObj.ip); // Genera tabla CIDR real
+                    // IP válida → calcular resultados y tabla CIDR
+                    calculate(ipObj);
+                    generateRealCIDRTable(ipObj.ip);
                 } else {
-                    // Opcional: limpiar resultados si el input es inválido
+                    // Input no válido → mostrar estado inicial
                     clearResults();
                 }
             });
