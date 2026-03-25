@@ -11,7 +11,7 @@ Calculadora de Subnetting interactiva en HTML, CSS y JS. Permite calcular subred
 - Toast elegante al copiar resultados.  
 - Resultados alineados debajo de los títulos para mayor legibilidad.  
 
-## Instalación
+## Instrucciones
 
 1. Primera opción:
 
