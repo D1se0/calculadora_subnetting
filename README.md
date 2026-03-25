@@ -2,9 +2,6 @@
 
 Calculadora de Subnetting interactiva en HTML, CSS y JS. Permite calcular subredes, hosts, broadcast, máscaras y representación binaria, con diseño moderno dark y blur.
 
-## Mini descripción
-Calculadora de Subnetting moderna, dark y visual, con representación binaria, tablas CIDR y resultados interactivos.
-
 ## Características
 - Validación de IP y CIDR en tiempo real.  
 - Resultados detallados: Dirección de red, máscara, hosts, broadcast, wildcard, primeros y últimos hosts.  
